@@ -15,9 +15,25 @@
       margin: 10px;
       font-size: 16px;
     }
+    input {
+      padding: 10px;
+      width: 300px;
+      font-size: 16px;
+    }
     #response {
       margin-top: 20px;
       font-weight: bold;
+      font-size: 18px;
+    }
+    #log {
+      margin-top: 10px;
+      background: #eee;
+      padding: 10px;
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      font-family: monospace;
+      font-size: 14px;
     }
   </style>
 </head>
@@ -28,40 +44,68 @@
   <button id="stop-record" disabled>⏹️ Stop</button>
   <br>
 
-  <input type="text" id="text-input" placeholder="Type a prompt..." style="width: 300px;">
+  <input type="text" id="text-input" placeholder="Type a prompt...">
   <button id="send-text">Send</button>
 
   <div id="response">🤖 Response will appear here...</div>
+  <div id="log"></div>
 
   <script>
     const startBtn = document.getElementById("start-record");
     const stopBtn = document.getElementById("stop-record");
     const sendBtn = document.getElementById("send-text");
     const responseDiv = document.getElementById("response");
+    const logDiv = document.getElementById("log");
 
     let mediaRecorder;
     let audioChunks = [];
+
+    function log(msg) {
+      const timestamp = new Date().toLocaleTimeString();
+      logDiv.innerText += `[${timestamp}] ${msg}\n`;
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
 
     // === Voice Record and Upload ===
     startBtn.onclick = async () => {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaRecorder = new MediaRecorder(stream);
-      mediaRecorder.start();
       audioChunks = [];
+      mediaRecorder.start();
+      log("🎙️ Recording started...");
 
       mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+
       mediaRecorder.onstop = async () => {
+        log("⏹️ Recording stopped. Uploading...");
         const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
         const formData = new FormData();
         formData.append("audio", audioBlob);
 
-        const res = await fetch("http://localhost:5000/api/audio", {
-          method: "POST",
-          body: formData
-        });
+        try {
+          const res = await fetch("http://localhost:5000/api/audio", {
+            method: "POST",
+            body: formData
+          });
+          const data = await res.json();
+          if (data.error) {
+            log("❌ Error: " + data.error);
+            responseDiv.innerText = "❌ Error occurred";
+            return;
+          }
 
-        const data = await res.json();
-        responseDiv.innerText = "🤖 " + data.response;
+          responseDiv.innerText = "🤖 " + data.response;
+          log("🎤 Transcript: " + data.transcript);
+          log("💬 GPT Response: " + data.response);
+          log("⏱️ Timings:");
+          log("   • STT:   " + data.timing.stt + "s");
+          log("   • LLM:   " + data.timing.llm + "s");
+          log("   • TTS:   " + data.timing.tts + "s");
+          log("   • Total: " + data.timing.total + "s");
+
+        } catch (err) {
+          log("❌ Network error: " + err.message);
+        }
       };
 
       startBtn.disabled = true;
@@ -76,14 +120,35 @@
 
     // === Text Prompt ===
     sendBtn.onclick = async () => {
-      const prompt = document.getElementById("text-input").value;
-      const res = await fetch("http://localhost:5000/api/text", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt })
-      });
-      const data = await res.json();
-      responseDiv.innerText = "🤖 " + data.response;
+      const prompt = document.getElementById("text-input").value.trim();
+      if (!prompt) return;
+      log("📝 Sending prompt: " + prompt);
+
+      try {
+        const res = await fetch("http://localhost:5000/api/text", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt })
+        });
+        const data = await res.json();
+        if (data.error) {
+          log("❌ GPT Error: " + data.error);
+          responseDiv.innerText = "❌ Error from GPT";
+          return;
+        }
+
+        responseDiv.innerText = "🤖 " + data.response;
+        log("💬 GPT Response: " + data.response);
+        if (data.timing) {
+          log("⏱️ Timings:");
+          log("   • LLM:   " + data.timing.llm + "s");
+          log("   • TTS:   " + data.timing.tts + "s");
+          log("   • Total: " + data.timing.total + "s");
+        }
+
+      } catch (err) {
+        log("❌ Network error: " + err.message);
+      }
     };
   </script>
 </body>
