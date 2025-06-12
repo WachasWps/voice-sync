@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Voice Assistant Test</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      background: #f9f9f9;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 16px;
+    }
+    #response {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h2>🎙️ Voice Assistant Test</h2>
+
+  <button id="start-record">🎤 Start Recording</button>
+  <button id="stop-record" disabled>⏹️ Stop</button>
+  <br>
+
+  <input type="text" id="text-input" placeholder="Type a prompt..." style="width: 300px;">
+  <button id="send-text">Send</button>
+
+  <div id="response">🤖 Response will appear here...</div>
+
+  <script>
+    const startBtn = document.getElementById("start-record");
+    const stopBtn = document.getElementById("stop-record");
+    const sendBtn = document.getElementById("send-text");
+    const responseDiv = document.getElementById("response");
+
+    let mediaRecorder;
+    let audioChunks = [];
+
+    // === Voice Record and Upload ===
+    startBtn.onclick = async () => {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.start();
+      audioChunks = [];
+
+      mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+        const formData = new FormData();
+        formData.append("audio", audioBlob);
+
+        const res = await fetch("http://localhost:5000/api/audio", {
+          method: "POST",
+          body: formData
+        });
+
+        const data = await res.json();
+        responseDiv.innerText = "🤖 " + data.response;
+      };
+
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+    };
+
+    stopBtn.onclick = () => {
+      mediaRecorder.stop();
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+    };
+
+    // === Text Prompt ===
+    sendBtn.onclick = async () => {
+      const prompt = document.getElementById("text-input").value;
+      const res = await fetch("http://localhost:5000/api/text", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt })
+      });
+      const data = await res.json();
+      responseDiv.innerText = "🤖 " + data.response;
+    };
+  </script>
+</body>
+</html>

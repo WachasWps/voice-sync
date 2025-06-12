@@ -1,0 +1,33 @@
+2025-06-12 14:32:38,297 [INFO] Starting Flask server...
+2025-06-12 14:32:38,340 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2025-06-12 14:32:38,340 [INFO] [33mPress CTRL+C to quit[0m
+2025-06-12 14:32:38,379 [INFO]  * Restarting with watchdog (windowsapi)
+2025-06-12 14:32:40,707 [INFO] Starting Flask server...
+2025-06-12 14:32:40,723 [WARNING]  * Debugger is active!
+2025-06-12 14:32:40,764 [INFO]  * Debugger PIN: 123-614-996
+2025-06-12 14:32:59,902 [INFO] [AUDIO] Received audio and saved to temp.wav
+2025-06-12 14:32:59,902 [INFO] [AUDIO] Transcribed prompt (mock): Hello from audio!
+2025-06-12 14:32:59,904 [INFO] [GPT] Sending prompt to Azure: Hello from audio!
+2025-06-12 14:33:01,286 [INFO] HTTP Request: POST https://botwot-opanai.openai.azure.com/openai/deployments/gpt-4o-mini/chat/completions?api-version=2024-02-15-preview "HTTP/1.1 401 PermissionDenied"
+2025-06-12 14:33:01,289 [ERROR] [AUDIO] Error during audio processing
+Traceback (most recent call last):
+  File "C:\Users\wacha\OneDrive\Desktop\Storage\BotWot\voice sync\app.py", line 53, in handle_audio
+    response = asyncio.run(ask_gpt(prompt))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\asyncio\runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\asyncio\runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python312\Lib\asyncio\base_events.py", line 687, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\wacha\OneDrive\Desktop\Storage\BotWot\voice sync\voice_logic.py", line 33, in ask_gpt
+    response.raise_for_status()
+  File "C:\Python312\Lib\site-packages\httpx\_models.py", line 761, in raise_for_status
+    raise HTTPStatusError(message, request=request, response=self)
+httpx.HTTPStatusError: Client error '401 PermissionDenied' for url 'https://botwot-opanai.openai.azure.com/openai/deployments/gpt-4o-mini/chat/completions?api-version=2024-02-15-preview'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+2025-06-12 14:33:01,295 [INFO] 127.0.0.1 - - [12/Jun/2025 14:33:01] "[35m[1mPOST /api/audio HTTP/1.1[0m" 500 -
